@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulateur de Tarif de Nettoyage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f7f7f7;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin: 15px 0 5px;
+        }
+        select, input[type="checkbox"], button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .result {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Simulateur de Tarif</h1>
+    
+    <label for="secteur">Secteur</label>
+    <select id="secteur">
+        <option value="Paris">Paris</option>
+        <option value="Hors Paris">Hors Paris</option>
+    </select>
+    
+    <label for="dureeReservation">Durée de Réservation (par semaine)</label>
+    <select id="dureeReservation">
+        <!-- Options générées automatiquement par JavaScript -->
+    </select>
+    
+    <label for="engagement">Avec Engagement ?</label>
+    <input type="checkbox" id="engagement">
+    
+    <label for="materielEtProduit">Avec Matériel et Produit ?</label>
+    <input type="checkbox" id="materielEtProduit">
+    
+    <button onclick="calculerTarif()">Calculer le Tarif</button>
+    
+    <div class="result" id="resultat"></div>
+</div>
+
+<script>
+    // Génération dynamique des options de durée (0,5 h pour la première, ensuite incrément de 1 h)
+    const dureeReservationSelect = document.getElementById("dureeReservation");
+    dureeReservationSelect.appendChild(new Option("0,5 h/semaine (2 h/mois)", 2));
+    for (let heuresParSemaine = 1; heuresParSemaine <= 75; heuresParSemaine++) {
+        const heuresParMois = Math.round(heuresParSemaine * 4); // Conversion en heures par mois
+        const option = new Option(`${heuresParSemaine} h/semaine (${heuresParMois} h/mois)`, heuresParMois);
+        dureeReservationSelect.appendChild(option);
+    }
+
+    // Fonction pour calculer le tarif
+    function calculerTarif() {
+        const secteur = document.getElementById("secteur").value;
+        const dureeReservation = parseInt(document.getElementById("dureeReservation").value, 10); // Durée en heures par mois
+        const engagement = document.getElementById("engagement").checked;
+        const materielEtProduit = document.getElementById("materielEtProduit").checked;
+        
+        let tarifHoraire = null;
+        let typeReservation = dureeReservation > 20 ? "reguliere" : "ponctuelle";
+
+        // Cas non disponible : engagement avec moins de 20 heures par mois
+        if (engagement && dureeReservation < 20) {
+            document.getElementById("resultat").innerText = 
+                "Réservations inférieures à 20 heures par mois avec engagement ne sont pas possibles.";
+            return;
+        }
+
+        // Cas spécifique : Durée inférieure à 20 h/mois, sans engagement, avec matériel et produit
+        if (dureeReservation < 20 && !engagement && materielEtProduit) {
+            tarifHoraire = 30; // Tarif horaire pour cette condition
+        }
+
+        // Calcul des tarifs en fonction des critères
+        if (typeReservation === "reguliere" && tarifHoraire === null) {
+            if (secteur === "Paris") {
+                if (engagement) {
+                    tarifHoraire = materielEtProduit ? 24 : 22;
+                } else {
+                    tarifHoraire = 25;
+                }
+            } else if (secteur === "Hors Paris") {
+                tarifHoraire = engagement ? 25 : 25; // Hors Paris sans matériel/produit
+            }
+        } else if (typeReservation === "ponctuelle" && tarifHoraire === null) {
+            if (secteur === "Paris" || secteur === "Hors Paris") {
+                tarifHoraire = materielEtProduit ? 149 : 30; // Tarif global pour ponctuel
+            }
+        }
+
+        // Gestion des cas indisponibles
+        if (secteur === "Hors Paris" && materielEtProduit) {
+            tarifHoraire = null;
+        }
+
+        // Ajout d'un tarif fixe pour Paris + matériel/produit + < 20 heures
+        let tarifFixe = 0;
+        if (secteur === "Paris" && materielEtProduit && dureeReservation < 20) {
+            tarifFixe = 149;
+        }
+
+        // Calcul du coût total mensuel
+        let tarifMensuel = tarifHoraire ? (tarifHoraire * dureeReservation + tarifFixe).toFixed(2) : null;
+
+        // Affichage du résultat
+        const resultat = tarifHoraire
+            ? `Durée totale : ${dureeReservation} h/mois. Tarif horaire : ${tarifHoraire} €/h. 
+               Tarif fixe supplémentaire : ${tarifFixe} €. Coût mensuel total : ${tarifMensuel} €.`
+            : "Option non disponible pour les critères sélectionnés.";
+        
+        document.getElementById("resultat").innerText = resultat;
+    }
+</script>
+
+</body>
+</html>
